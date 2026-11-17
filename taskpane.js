@@ -23,11 +23,15 @@
     els.save = document.getElementById("save");
     els.clear = document.getElementById("clear");
     els.subject = document.getElementById("subject");
+    els.followup = document.getElementById("followup");
+    els.reminder = document.getElementById("reminder");
 
     els.note.addEventListener("input", onInput);
     els.note.addEventListener("blur", function () { if (dirty) save(); });
     els.save.addEventListener("click", save);
     els.clear.addEventListener("click", clearNote);
+    els.followup.addEventListener("click", addFollowUpLine);
+    els.reminder.addEventListener("click", openReminder);
 
     // Panneau épinglé : recharger la note quand on change de mail.
     if (Office.context.mailbox.addHandlerAsync) {
@@ -114,6 +118,62 @@
     save();
   }
 
+  /* « + Suivi » : ajoute en fin de note une ligne « 17/11/2026 : » et y place le curseur. */
+  function addFollowUpLine() {
+    var text = els.note.value.replace(/\s+$/, "");
+    var line = new Date().toLocaleDateString("fr-FR") + " : ";
+    var next = (text ? text + "\n" : "") + line;
+    if (next.length > els.note.maxLength) {
+      setStatus("Note pleine (2000 caractères maximum).", true);
+      return;
+    }
+    els.note.value = next;
+    els.note.focus();
+    els.note.setSelectionRange(next.length, next.length);
+    els.note.scrollTop = els.note.scrollHeight;
+    onInput();
+  }
+
+  /* « Rappel agenda » : ouvre un nouveau rendez-vous pré-rempli (demain ou lundi, 9 h, 15 min).
+   * Rien n'est créé tant que vous n'avez pas cliqué sur Enregistrer dans Outlook. */
+  function openReminder() {
+    if (dirty) save();
+    var item = Office.context.mailbox.item;
+    if (!item) return;
+
+    var start = new Date();
+    start.setDate(start.getDate() + 1);
+    while (start.getDay() === 0 || start.getDay() === 6) start.setDate(start.getDate() + 1);
+    start.setHours(9, 0, 0, 0);
+    var end = new Date(start.getTime() + 15 * 60 * 1000);
+
+    var subject = item.subject || "(sans objet)";
+    var from = item.from
+      ? (item.from.displayName || "") + (item.from.emailAddress ? " <" + item.from.emailAddress + ">" : "")
+      : "";
+    var received = item.dateTimeCreated
+      ? new Date(item.dateTimeCreated).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })
+      : "";
+    var note = els.note.value.replace(/\s+$/, "");
+
+    var lines = ["Rappel lié au mail :", "Objet : " + subject];
+    if (from) lines.push("De : " + from);
+    if (received) lines.push("Reçu le : " + received);
+    if (note) lines.push("", "Ma note :", note);
+
+    try {
+      Office.context.mailbox.displayNewAppointmentForm({
+        requiredAttendees: [],
+        start: start,
+        end: end,
+        subject: "Rappel : " + subject,
+        body: lines.join("\n")
+      });
+    } catch (e) {
+      setStatus("Impossible d'ouvrir l'agenda : " + e.message, true);
+    }
+  }
+
   /* Catégorie « 📝 Note » pour repérer les mails annotés dans la liste.
    * Nécessite Mailbox 1.8 ; si indisponible, on ignore silencieusement. */
   function setCategory(on) {
@@ -157,6 +217,8 @@
     els.note.disabled = !on;
     els.save.disabled = !on;
     els.clear.disabled = !on;
+    els.followup.disabled = !on;
+    els.reminder.disabled = !on;
   }
 
   function setStatus(msg, isError) {
