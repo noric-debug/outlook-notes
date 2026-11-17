@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Notes sur le mail</title>
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+  <link rel="stylesheet" href="taskpane.css">
+</head>
+<body>
+  <main>
+    <p id="subject" class="subject"></p>
+
+    <label for="note" class="label">Ma note sur ce mail</label>
+    <textarea id="note" maxlength="2000" placeholder="Écrivez votre note ici… Elle est enregistrée automatiquement." disabled></textarea>
+
+    <div class="meta">
+      <span id="status" aria-live="polite">Chargement…</span>
+      <span id="count">0 / 2000</span>
+    </div>
+
+    <div class="actions">
+      <button id="save" type="button" disabled>Enregistrer</button>
+      <button id="clear" type="button" class="secondary" disabled>Supprimer la note</button>
+    </div>
+
+    <p class="hint">Astuce : épinglez ce panneau (icône punaise) pour qu'il reste ouvert quand vous changez de mail.
+      Les mails annotés reçoivent la catégorie « 📝 Note ».</p>
+  </main>
+  <script src="taskpane.js"></script>
+</body>
+</html>
